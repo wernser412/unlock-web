@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Libertador de la Web
-// @namespace    https://wernser412.dev/
-// @version      4.2
+// @namespace    http://tampermonkey.net/
+// @version      4.3
 // @description  Elimina restricciones comunes, muestra/copia la URL real de imágenes al hover y permite seleccionar texto dentro de enlaces/elementos clicables (comportamiento tipo Opera). Menú Tampermonkey para toggles.
 // @author       wernser412
 // @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjI0Ij48cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTEyIDE3YzEuMSAwIDItLjkgMi0ycy0uOS0yLTItMi0yIC45LTIgMiAuOSAyIDIgMnptNi05aC0xVjZjMC0yLjc2LTIuMjQtNS01LTVTNyAzLjI0IDcgNmgxLjljMC0xLjcxIDEuMzktMy4xIDMuMS0zLjEgMS43MSAwIDMuMSAxLjM5IDMuMSAzLjF2Mkg2Yy0xLjEgMC0yIC45LTIgMnYxMGMwIDEuMS45IDIgMiAyaDEyYzEuMSAwIDItLjkgMi0yVjEwYzAtMS4xLS45LTItMi0yem0wIDEySDZWMTBoMTJ2MTB6Ii8+PC9zdmc+
+// @downloadURL  https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20de%20la%20Web.user.js
 // @license      MIT
 // @match        *://*/*
 // @run-at       document-start
