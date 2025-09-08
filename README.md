@@ -2,7 +2,7 @@
 
 **Última Actualización:** 08 de septiembre de 2025
 
-![Tampermonkey](GUI.jpg)
+![Tampermonkey](https://github.com/wernser412/unlock-web/blob/main/GUI.png?raw=true)
 
 ## 📄 Descripción
 **Unlock Web** es un UserScript que elimina restricciones comunes en la web.  
