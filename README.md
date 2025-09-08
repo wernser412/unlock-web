@@ -31,7 +31,7 @@ Ideal para quienes desean navegar sin límites y aprovechar la web de forma libr
 1. Instala la extensión [Tampermonkey](https://www.tampermonkey.net/) en tu navegador.  
 2. Haz clic en el siguiente enlace para añadir el script:  
 
-👉 [**Instalar Unlock Web**](https://github.com/wernser412/unlock-web/raw/main/Libertador de la Web.user.js)
+👉 [**Instalar Unlock Web**](https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20de%20la%20Web.user.js)
 
 ---
 
