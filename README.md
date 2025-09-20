@@ -1,6 +1,6 @@
 # 🔓 Unlock Web (Libertador de la Web)
 
-**Última Actualización:** 08 de septiembre de 2025
+**Última Actualización:** 19 de septiembre de 2025
 
 ![Tampermonkey](https://github.com/wernser412/unlock-web/blob/main/GUI.png?raw=true)
 
