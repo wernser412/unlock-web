@@ -62,7 +62,7 @@ Incluye además un sistema de tooltip inteligente que muestra la URL real de cua
 
 1. Instala la extensión [Tampermonkey](https://www.tampermonkey.net/) en tu navegador.
 2. Haz clic en este enlace para instalar el script:  
-   👉 **[Descargar Script](https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20de%20la%20Web.user.js)**
+   👉 **[Descargar Script](https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20PRO.user.js)**
 
 
 ---
