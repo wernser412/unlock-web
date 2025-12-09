@@ -4,6 +4,8 @@
 // @version      2025.12.08
 // @description  Menús claros, selección de texto, tooltip que cambia de color y copia URL con CTRL sobre imagen, desbloqueo total de atajos
 // @author       wernser412
+// @icon         https://github.com/wernser412/unlock-web/raw/refs/heads/main/ICONO.svg
+// @downloadURL  https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20de%20la%20Web.user.js
 // @match        *://*/*
 // @run-at       document-start
 // @grant        GM_setValue
