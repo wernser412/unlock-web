@@ -1,54 +1,146 @@
-# 🔓 Unlock Web (Libertador de la Web)
+# ⚙️ Libertador PRO – Panel Claro (Tooltip y CTRL sobre imágenes)
 
-**Última Actualización:** 19 de septiembre de 2025
+**Última Actualización:** 08 de diciembre de 2025
 
 ![Tampermonkey](https://github.com/wernser412/unlock-web/blob/main/GUI.png?raw=true)
 
-## 📄 Descripción
-**Unlock Web** es un UserScript que elimina restricciones comunes en la web.  
-Te permite recuperar el control de páginas que bloquean acciones como copiar texto, usar el clic derecho o ver la URL real de una imagen.  
-
-Ideal para quienes desean navegar sin límites y aprovechar la web de forma libre.
+**Libertador PRO** es un userscript avanzado para Tampermonkey que restaura la libertad del usuario en páginas que bloquean la selección de texto, el clic derecho, el guardado de imágenes, atajos del teclado y otras acciones básicas.  
+Incluye además un sistema de tooltip inteligente que muestra la URL real de cualquier imagen y permite copiarla instantáneamente con **CTRL**.
 
 ---
 
-## ✨ Características
-- ✅ Habilita el **clic derecho** en páginas bloqueadas  
-- ✅ Permite **copiar/pegar y seleccionar texto**  
-- ✅ Muestra y copia la **URL real de imágenes** (incluye fondos y SVG)  
-- ✅ Posibilidad de **seleccionar texto dentro de enlaces** (como en Opera)  
-- ✅ Bypass de:
-  - Bloqueos de consola  
-  - `debugger`  
-  - Bloqueos de teclado  
-  - Bloqueos de enlaces  
-- ✅ Funciona en **iframes** opcionalmente  
-- ✅ Menú de configuración integrado en Tampermonkey  
+## ✨ Características Principales
+
+### 📝 **Selección de Texto**
+- Quita bloqueos por CSS (user-select: none)
+- Permite copiar texto en webs protegidas  
+- Habilita selección completa (force select)  
+- Permite seleccionar enlaces como Opera (selección azul)
+
+### 🖱 **Clic Derecho y Mouse**
+- Elimina el bloqueo del clic derecho  
+- Desactiva scripts que impiden arrastrar texto o imágenes
+
+### 🖼 **Imágenes**
+- Tooltip que muestra la URL real de la imagen
+- Copiar URL REAL con solo pulsar **CTRL**
+- Opcional: desbloquear “Guardar imagen como…”
+- Opcional: forzar descarga directa
+- Anti-overlay para imágenes cubiertas con capas transparentes
+
+### ⌨ **Teclado**
+- Desbloquea **todos los atajos** (Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+S, etc.)
+- Evita scripts que bloquean teclas o combinaciones
+
+### 🚫 **Anti-Barreras**
+- Neutraliza scripts anti-copia, anti-selección, anti-clic
+- Bloquea ofuscadores molestos
+- Evita focus/blur forzado
+- Anula detección de DevTools
+
+### 🐞 **Anti-Debugger**
+- Neutraliza `debugger;`
+- Evita pausas forzadas
+- Rompe loops infinitos
+
+### 🧩 **Iframes**
+- Desbloquea contenido dentro de iframes
+
+### 🔗 **Enlaces**
+- Quita onclicks que impiden abrir enlaces
+- Permite seleccionar texto dentro de enlaces sin abrirlos
+
+### 🧭 **Panel Moderno**
+- Organizado por categorías  
+- Colores por sección  
+- Guardado automático de configuración  
+- Icono flotante ⚙ estilo minimalista
 
 ---
 
-## 📥 Instalación
-1. Instala la extensión [Tampermonkey](https://www.tampermonkey.net/) en tu navegador.  
-2. Haz clic en el siguiente enlace para añadir el script:  
+## 🛠 Instalación
 
-👉 [**Instalar Unlock Web**](https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20de%20la%20Web.user.js)
+1. Instala la extensión [Tampermonkey](https://www.tampermonkey.net/) en tu navegador.
+2. Haz clic en este enlace para instalar el script:  
+   👉 **[Descargar Script](https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20de%20la%20Web.user.js)**
 
----
-
-## ▶️ Uso
-- Una vez instalado, abre cualquier página con restricciones.  
-- Desde el menú de Tampermonkey podrás **activar o desactivar** cada función:  
-  - Clic derecho  
-  - Copiar / Pegar  
-  - Selección de texto  
-  - Mostrar URL de imágenes  
-  - Y más…  
-- Para copiar la URL de una imagen mostrada en el tooltip:  
-  - Coloca el mouse sobre ella  
-  - Presiona `Ctrl + C`  
 
 ---
 
-## ⚖️ Licencia
-Este proyecto se distribuye bajo la licencia **MIT**.  
-📌 Ver [LICENSE](LICENSE) para más detalles.
+## 🧩 Uso
+
+### 🔧 Abrir el Panel
+Haz clic en el icono flotante **⚙** ubicado en la esquina inferior derecha.
+
+### 📂 Menús principales
+- **Selección de Texto**  
+- **Anti-Barreras**  
+- **Debugger**  
+- **Imágenes**  
+- **Iframes**  
+- **Enlaces**  
+- **Teclado**
+
+### 🖼 Copiar URL real de imágenes
+1. Pasa el cursor sobre cualquier imagen  
+2. Aparecerá un tooltip con la URL  
+3. Presiona **CTRL** para copiar automáticamente  
+4. El tooltip parpadeará en verde (confirmación)
+
+Funciona incluso en imágenes protegidas, dentro de iframes, en overlays o con scripts de bloqueo.
+
+---
+
+## 🎛 Configuraciones recomendadas
+
+| Modo | Para qué sirve | Estado |
+|------|----------------|--------|
+| 🔓 Quitar bloqueo CSS | Selección básica | ON |
+| 🖱 Quitar clic derecho | Restaurar menú contextual | ON |
+| 🔓 Desbloquear todos los atajos | Copiar, pegar, todo | ON |
+| 🖼 Tooltip de imágenes | Ver y copiar URLs reales | ON |
+| 🔥 Forzar selección total | Texto imposible de copiar | Solo si hace falta |
+
+---
+
+## 🔧 Compatibilidad
+
+| Navegador | Estado |
+|-----------|--------|
+| Chrome / Edge / Brave | ✔ 100% |
+| Opera GX | ✔ |
+| Firefox | ✔ |
+| Tor Browser | ⚠ parcialmente |
+| Modo incógnito | ✔ (si permites extensiones) |
+
+Compatible con:
+- Angular  
+- React  
+- Vue  
+- Webs con Shadow DOM  
+- SPA  
+- Ofuscadores JS comunes  
+- Bloqueos por CSS y JS
+
+---
+
+## 🧠 Notas Técnicas
+
+- Corre en `document-start` para máxima prioridad  
+- Anula eventos `keydown`, `keyup`, `contextmenu`, `copy`, `dragstart`, etc.  
+- Neutraliza scripts en línea (inline scripts)  
+- Respeta accesibilidad y rendimiento  
+- Zero data tracking
+
+---
+
+## 📄 Licencia
+
+MIT — Eres libre de modificar, compartir y usar el script donde quieras.
+
+---
+
+## 💬 Autor
+**wernser412**  
+Mejoras, reportes o ideas: ¡solo pídelas!
+
