@@ -1,17 +1,58 @@
-window.__LIB__.register("speed", {
+(function () {
 
-  desc: "Velocidad hasta 4x",
+  const wait = setInterval(() => {
 
-  enable() {
+    if (!window.__LIB__?.register)
+      return;
 
-    document.querySelectorAll("video").forEach(v => {
+    clearInterval(wait);
 
-      v.playbackRate = 2;
+    window.__LIB__.register("speed", {
+
+      desc: "Velocidad hasta 4x",
+
+      enable() {
+
+        function applySpeed() {
+
+          document
+            .querySelectorAll("video")
+            .forEach(v => {
+
+              v.playbackRate = 2;
+
+            });
+
+        }
+
+        // aplicar ahora
+        applySpeed();
+
+        // aplicar cuando YouTube cambie de video
+        const obs = new MutationObserver(
+          applySpeed
+        );
+
+        obs.observe(
+          document.documentElement,
+          {
+            childList: true,
+            subtree: true
+          }
+        );
+
+        console.log(
+          "SPEED ENABLED"
+        );
+
+      }
 
     });
 
-    console.log("SPEED ENABLED");
+    console.log(
+      "REGISTERED: speed"
+    );
 
-  }
+  }, 100);
 
-});
+})();
