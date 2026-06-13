@@ -307,11 +307,7 @@
       AGREGA AQUÍ TUS MÓDULOS EXTERNOS
     */
 
-    loadScript("https://tu-servidor.com/speed.js");
-
-    loadScript("https://tu-servidor.com/volume.js");
-
-    loadScript("https://tu-servidor.com/image.js");
+    loadScript("https://github.com/wernser412/unlock-web/raw/refs/heads/main/Youtube_speed.js");
 
   }, 200);
 
