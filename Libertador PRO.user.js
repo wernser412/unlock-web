@@ -4,8 +4,8 @@
 // @version      2026.06.15
 // @description  Framework modular + Ultra Unlock + Tooltip + módulos completos
 // @author       wernser412
-// @icon         https://github.com/wernser412/unlock-web/raw/refs/heads/main/ICONO.svg
-// @downloadURL  https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20PRO.user.js
+// @icon         https://github.com/wernser412/Libertador-PRO/raw/refs/heads/main/ICONO.svg
+// @downloadURL  https://github.com/wernser412/Libertador-PRO/raw/refs/heads/main/Libertador%20PRO.user.js
 // @match        *://*/*
 // @run-at       document-start
 // @grant        GM_setValue
