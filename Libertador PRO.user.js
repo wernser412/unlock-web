@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ⚙ Libertador PRO
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.08
-// @description  Menús claros, selección de texto, tooltip que cambia de color y copia URL con CTRL sobre imagen, desbloqueo total de atajos
+// @version      2026.06.15
+// @description  Framework modular + Ultra Unlock + Tooltip + módulos completos
 // @author       wernser412
 // @icon         https://github.com/wernser412/unlock-web/raw/refs/heads/main/ICONO.svg
 // @downloadURL  https://github.com/wernser412/unlock-web/raw/refs/heads/main/Libertador%20PRO.user.js
@@ -13,328 +13,586 @@
 // @grant        GM_addStyle
 // @grant        GM_setClipboard
 // @grant        GM_registerMenuCommand
-// @grant        GM_notification
 // ==/UserScript==
 
-(function(){
+(function () {
   'use strict';
 
-  const defaultSettings = {
-    panelOpen:true, cssUnlock:true, contextMenuUnlock:true, mouseUnlock:true, linkSelect:true,
-    forceSelect:false, protectErase:false, antiCopy:false, antiScripts:false, antiObfuscator:false,
-    antiFocusTrap:false, antiDevtoolsDetect:false, neutralDebugger:false, antiPause:false, antiLoop:false,
-    imageTooltip:true, imageCopy:true, imageSaveUnlock:false, imageForceDownload:false, imageAntiOverlay:false,
-    iframeBypass:true, linkBypass:false,
-    unlockShortcuts:false
+  /************************************************************
+   * 🧠 CORE
+   ************************************************************/
+  const Core = {
+    settings: GM_getValue("libertador_v36", {}) || {},
+    modules: {},
+
+    save() {
+      GM_setValue("libertador_v36", this.settings);
+    },
+
+    get(k) {
+      return this.settings[k];
+    },
+
+    set(k, v) {
+      this.settings[k] = v;
+      this.save();
+
+      const m = this.modules[k];
+      if (m) toggle(k, v);
+    }
   };
 
-  let settings = GM_getValue("libertador_pro_panel",null);
-  if(!settings){
-    settings = structuredClone(defaultSettings);
-    GM_setValue("libertador_pro_panel",settings);
-  }
-  const save=()=>GM_setValue("libertador_pro_panel",settings);
-
-  // ---------------- Funciones básicas ----------------
-  function applyCSSUnlock(){if(settings.cssUnlock)GM_addStyle(`*{user-select:text!important;-webkit-user-select:text!important}`);}
-  function unlockContextMenu(){if(!settings.contextMenuUnlock)return;window.addEventListener("contextmenu",e=>e.stopImmediatePropagation(),true);}
-  function unlockMouse(){if(!settings.mouseUnlock)return;["mousedown","mouseup","selectstart"].forEach(ev=>window.addEventListener(ev,e=>e.stopImmediatePropagation(),true));}
-  function linkSelect(){ enableLinkSelection(); }
-  function protectSelectionErase(){if(!settings.protectErase)return;document.addEventListener("selectionchange",e=>{if(settings.forceSelect)e.stopImmediatePropagation();},true);}
-  function blockCopy(){if(!settings.antiCopy)return;document.addEventListener("copy",e=>e.stopImmediatePropagation(),true);}
-  function antiScripts(){if(!settings.antiScripts)return;document.querySelectorAll("script").forEach(s=>{if(/copy|select|context/i.test(s.innerText))s.remove();});}
-  function antiObfuscator(){if(!settings.antiObfuscator)return;Object.keys(window).forEach(k=>{if(/_[a-zA-Z0-9]{4,}/.test(k))try{delete window[k]}catch{}});}
-  function antiFocusTrap(){if(!settings.antiFocusTrap)return;["blur","focus"].forEach(ev=>window.addEventListener(ev,e=>e.stopImmediatePropagation(),true));}
-  function antiDevtoolsDetect(){if(!settings.antiDevtoolsDetect)return;setInterval(()=>{window.onresize=null;window.onblur=null;},500);}
-  function neutralDebugger(){if(!settings.neutralDebugger)return;setInterval(()=>{debugger;},600);}
-  function antiPause(){if(!settings.antiPause)return;const f=window.Function;window.Function=function(){return function(){};};setTimeout(()=>window.Function=f,5000);}
-  function antiLoop(){if(!settings.antiLoop)return;setInterval(()=>{},1000);}
-  function iframeBypass(){if(!settings.iframeBypass)return;document.querySelectorAll("iframe").forEach(f=>{try{f.style.pointerEvents="auto";}catch{}});}
-  function linkBypass(){if(!settings.linkBypass)return;document.querySelectorAll("a").forEach(a=>{a.removeAttribute("onclick");a.style.pointerEvents="auto";});}
-
-  // ---------------- Tooltip unificado ----------------
-  function getImageUrlFrom(el, event, win=window){
-    if(!el) return '';
-    const doc = (win && win.document) ? win.document : document;
-    function getUrlFromNode(node){
-      if(!node || node.nodeType!==1) return '';
-      const tag=node.nodeName.toLowerCase();
-      if(tag==='img') return node.currentSrc||node.getAttribute('src')||node.src||'';
-      if(node.namespaceURI==='http://www.w3.org/2000/svg' && tag==='image')
-        return node.getAttribute('href')||node.getAttribute('xlink:href')||'';
-      const cs=win.getComputedStyle(node);
-      if(cs && cs.backgroundImage && cs.backgroundImage!=='none'){
-        const m=cs.backgroundImage.match(/url\((?:'|")?(.+?)(?:'|")?\)/);
-        if(m && m[1]) return m[1];
-      }
-      return '';
-    }
-    if(event && typeof doc.elementsFromPoint==='function'){
-      const elems=doc.elementsFromPoint(event.clientX,event.clientY)||[];
-      for(let node of elems){
-        let url=getUrlFromNode(node);
-        if(url) return url;
-      }
-    }
-    return '';
+  function register(name, mod) {
+    Core.modules[name] = mod;
   }
 
-function imageEngine(){
-    if(!settings.imageTooltip || !document.body) return;
-    if(window.__libertadorTooltipAttached) return;
-    window.__libertadorTooltipAttached=true;
+  function toggle(name, enabled) {
+    const m = Core.modules[name];
+    if (!m) return;
 
-    const tip=document.createElement("div");
-    Object.assign(tip.style,{
-      position:"fixed", background:"rgba(0,0,0,0.85)", color:"#fff", padding:"6px 8px",
-      borderRadius:"8px", fontSize:"12px", zIndex:2147483646, display:"none", pointerEvents:"none",
-      transition:"0.12s", maxWidth:"60vw", wordBreak:"break-all"
+    if (enabled && !m.active) {
+      m.enable?.();
+      m.active = true;
+    } else if (!enabled && m.active) {
+      m.disable?.();
+      m.active = false;
+    }
+  }
+
+  /************************************************************
+   * 📋 CLIPBOARD FIX
+   ************************************************************/
+  function copyToClipboard(text) {
+    try {
+      if (typeof GM_setClipboard !== "undefined") {
+        GM_setClipboard(text, "text");
+        return true;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text);
+        return true;
+      }
+
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+
+      return true;
+
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /************************************************************
+   * 🎨 UI LIMPIO (SIN BUSCADOR)
+   ************************************************************/
+  function createUI() {
+
+    GM_addStyle(`
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+      #fab {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: linear-gradient(135deg,#00ff99,#00aaff);
+        z-index: 999999;
+        cursor: pointer;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size: 22px;
+      }
+
+      #panel {
+        position: fixed;
+        right: 18px;
+        bottom: 80px;
+        width: 380px;
+        height: 560px;
+        border-radius: 18px;
+        background: rgba(20,20,25,0.75);
+        backdrop-filter: blur(18px);
+        border: 1px solid rgba(255,255,255,0.08);
+        z-index: 999998;
+        font-family: Inter, sans-serif;
+        color: white;
+        display: none;
+        overflow: hidden;
+      }
+
+      #header {
+        padding: 14px;
+        font-weight: 600;
+        background: linear-gradient(90deg,#00ff99,#00aaff);
+        color: black;
+      }
+
+      #modules {
+        padding: 10px;
+        overflow-y:auto;
+        height: 480px;
+      }
+
+      .row {
+        display:flex;
+        justify-content: space-between;
+        align-items:center;
+        padding: 10px;
+        margin: 6px 0;
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        font-size: 13px;
+      }
+    `);
+
+    const fab = document.createElement("div");
+    fab.id = "fab";
+    fab.textContent = "⚙";
+
+    const panel = document.createElement("div");
+    panel.id = "panel";
+
+    panel.innerHTML = `
+      <div id="header">⚙ Libertador PRO v3.6 ULTRA FULL</div>
+      <div id="modules"></div>
+    `;
+
+    document.body.appendChild(fab);
+    document.body.appendChild(panel);
+
+    fab.onclick = () => {
+      panel.style.display = panel.style.display === "block" ? "none" : "block";
+    };
+
+    const container = panel.querySelector("#modules");
+
+    function render() {
+      container.innerHTML = "";
+
+      Object.keys(Core.modules).forEach(name => {
+
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const checked = Core.get(name);
+
+        row.innerHTML = `
+          <span>${name}</span>
+          <input type="checkbox" ${checked ? "checked" : ""}>
+        `;
+
+        const cb = row.querySelector("input");
+
+        cb.onchange = () => {
+          Core.set(name, cb.checked);
+          toggle(name, cb.checked);
+        };
+
+        container.appendChild(row);
+      });
+    }
+
+    render();
+  }
+
+  /************************************************************
+   * 🔓 ULTRA UNLOCK ENGINE
+   ************************************************************/
+  register("ultraUnlock", {
+    enable() {
+
+      GM_addStyle(`
+        * {
+          user-select: text !important;
+          -webkit-user-select: text !important;
+        }
+      `);
+
+      ["copy","cut","paste","contextmenu","selectstart","mousedown","mouseup"]
+        .forEach(ev => {
+          document.addEventListener(ev, e => {
+            e.stopImmediatePropagation();
+          }, true);
+        });
+
+    }
+  });
+
+  /************************************************************
+   * 🖼 IMAGE TOOLTIP + AUTO COPY
+   ************************************************************/
+register("imageTooltip", {
+  enable() {
+
+    const tip = document.createElement("div");
+    Object.assign(tip.style, {
+      position: "fixed",
+      background: "rgba(0,0,0,0.85)",
+      color: "#fff",
+      padding: "6px 8px",
+      borderRadius: "8px",
+      fontSize: "12px",
+      zIndex: 2147483646,
+      display: "none",
+      pointerEvents: "none",
+      maxWidth: "60vw",
+      wordBreak: "break-all",
+      transition: "0.12s"
     });
+
     document.body.appendChild(tip);
 
-    let lastUrl='';
+    let lastUrl = "";
+    let timer = null;
+    let countdown = 10;
+    let copied = false;
 
-    document.addEventListener("mousemove", e=>{
-      const url=getImageUrlFrom(e.target,e);
-      if(url){
-        lastUrl=url;
-        tip.textContent=url;
-        tip.style.display="block";
-        tip.style.left=(e.clientX+12)+"px";
-        tip.style.top=(e.clientY+12)+"px";
-        tip.style.background="rgba(0,0,0,0.85)";
-      } else {
-        lastUrl = '';
-        tip.style.display="none";
-      }
-    }, true);
-
-    let ctrlPressed = false;
-
-    function copyLastUrlAndFlash(){
-        if(!lastUrl) return;
-        try{
-            if(navigator.clipboard && navigator.clipboard.writeText){
-                navigator.clipboard.writeText(lastUrl).catch(()=>{ GM_setClipboard(lastUrl); });
-            } else {
-                GM_setClipboard(lastUrl);
-            }
-        }catch(err){
-            try{ GM_setClipboard(lastUrl); }catch(e){}
+    // ---------------------------
+    // 📌 COPY SAFE
+    // ---------------------------
+    function copyToClipboard(text) {
+      try {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(text);
+        } else if (typeof GM_setClipboard !== "undefined") {
+          GM_setClipboard(text, "text");
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
         }
-        tip.style.transition = "none";
-        tip.style.background = "#0f0";
-        setTimeout(()=>{ tip.style.transition = "0.12s"; tip.style.background = "rgba(0,0,0,0.85)"; }, 220);
+      } catch (e) {}
     }
 
-    document.addEventListener("keydown", e => {
-        if(e.key === "Control" || e.metaKey){
-            if(!ctrlPressed){
-                ctrlPressed = true;
-                if(settings.imageTooltip && lastUrl) copyLastUrlAndFlash();
-            }
+    // ---------------------------
+    // 🧠 IMAGE DETECTOR ROBUSTO
+    // ---------------------------
+    function getImageUrlFrom(el, e) {
+      if (!el) return "";
+
+      function extract(node) {
+        if (!node || node.nodeType !== 1) return "";
+
+        const tag = node.nodeName.toLowerCase();
+
+        // IMG normal
+        if (tag === "img") {
+          return node.currentSrc || node.src || node.getAttribute("src") || "";
         }
-    }, true);
 
-    document.addEventListener("keyup", e => {
-        if(e.key === "Control" || e.key === "Meta") ctrlPressed = false;
-    }, true);
+        // SVG images (avatars modernos)
+        if (node.namespaceURI === "http://www.w3.org/2000/svg" && tag === "image") {
+          return node.getAttribute("href") ||
+                 node.getAttribute("xlink:href") || "";
+        }
 
-    window.addEventListener("blur", ()=>{ ctrlPressed = false; }, true);
+        // CSS background images (cards, perfiles, etc.)
+        const cs = getComputedStyle(node);
+        if (cs?.backgroundImage && cs.backgroundImage !== "none") {
+          const m = cs.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+          if (m) return m[1];
+        }
 
-    document.addEventListener("copy", e => {
-        if (!settings.imageTooltip || !lastUrl) return;
-        const sel = window.getSelection().toString();
-        if(sel) return;
-        try{
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if(e.clipboardData) e.clipboardData.setData("text/plain", lastUrl);
-            else GM_setClipboard(lastUrl);
-            tip.style.transition="none";
-            tip.style.background="#0f0";
-            setTimeout(()=>{ tip.style.transition="0.12s"; tip.style.background="rgba(0,0,0,0.85)"; },220);
-        }catch(err){}
-    }, true);
-
-    if(settings.imageAntiOverlay) GM_addStyle(`#libertador_panel img{pointer-events:auto!important}`);
-}
-
-
-  // ---------------- DESBLOQUEAR TODOS LOS ATAJOS ----------------
-  function unlockShortcuts(){
-    if(!settings.unlockShortcuts) return;
-
-    // Permitir selección
-    GM_addStyle(`*{user-select:text!important;-webkit-user-select:text!important}`);
-
-    // Impedir bloqueos de atajos
-    window.addEventListener("keydown", e=>{
-      // Evita que scripts bloqueen keys
-      e.stopImmediatePropagation();
-      e.cancelBubble = true;
-    }, true);
-
-    window.addEventListener("keyup", e=>{
-      e.stopImmediatePropagation();
-    }, true);
-
-    window.addEventListener("keypress", e=>{
-      e.stopImmediatePropagation();
-    }, true);
-  }
-
-  // ---------------- Aplicar todo ----------------
-  function applyAll(){
-    applyCSSUnlock();
-    unlockContextMenu();
-    unlockMouse();
-    linkSelect();
-    protectSelectionErase();
-    blockCopy();
-    antiScripts();
-    antiObfuscator();
-    antiFocusTrap();
-    antiDevtoolsDetect();
-    neutralDebugger();
-    antiPause();
-    antiLoop();
-    imageEngine();
-    iframeBypass();
-    linkBypass();
-    unlockShortcuts();   // ← NUEVO
-  }
-
-  // ---------------- Panel ----------------
-  let panel,gear;
-  function createPanel(){
-    gear=document.createElement("div");
-    gear.textContent="⚙";
-    Object.assign(gear.style,{
-      width:"50px",height:"50px",display:"flex",justifyContent:"center",alignItems:"center",
-      lineHeight:"50px",boxSizing:"border-box",borderRadius:"50%",position:"fixed",
-      right:"14px",bottom:"14px",fontSize:"26px",cursor:"pointer",
-      background:"#0a0a0a",color:"#0f0",padding:"12px",zIndex:999999,boxShadow:"0 0 14px #0f0"
-    });
-
-    panel=document.createElement("div");
-    panel.id="libertador_panel";
-    Object.assign(panel.style,{
-      position:"fixed",right:"14px",bottom:"80px",width:"370px",background:"#0b0b0b",color:"#0f0",
-      border:"1px solid #0f0",borderRadius:"14px",padding:"14px",zIndex:999998,
-      fontFamily:"monospace",fontSize:"13px",maxHeight:"80vh",overflowY:"auto",display:"block"
-    });
-
-    panel.innerHTML=`
-<b>⚙ Libertador PRO</b><hr>
-
-<details id="menu_texto" open><summary>📄 Selección de Texto (básico)</summary>
-<label><input type="checkbox" id="cssUnlock"> 🔓 Quitar bloqueo por CSS</label><br>
-<label><input type="checkbox" id="contextMenuUnlock"> 🖱 Quitar menú contextual</label><br>
-<label><input type="checkbox" id="mouseUnlock"> 🖱 Quitar bloqueo mouse</label><br>
-<label><input type="checkbox" id="linkSelect"> 🔗 Permitir selección enlaces</label>
-<hr>
-<b>🔥 Forzar Selección (avanzada)</b><br>
-<label><input type="checkbox" id="forceSelect"> Forzar selección total</label><br>
-<label><input type="checkbox" id="protectErase"> 🛡 Proteger contra borrado</label><br>
-<label><input type="checkbox" id="antiCopy"> 🚫 Bloquear anti-copia</label>
-</details>
-
-<details id="menu_anti" open><summary>🚫 Anti-Barreras (avanzada)</summary>
-<label><input type="checkbox" id="antiScripts"> Bloquear scripts anti-copia</label><br>
-<label><input type="checkbox" id="antiObfuscator"> Neutralizar ofuscadores</label><br>
-<label><input type="checkbox" id="antiFocusTrap"> Bloquear blur/focus</label><br>
-<label><input type="checkbox" id="antiDevtoolsDetect"> Evitar detección DevTools</label>
-</details>
-
-<details id="menu_debugger" open><summary>🐞 Bloqueo de Debugger</summary>
-<label><input type="checkbox" id="neutralDebugger"> Neutralizar debugger</label><br>
-<label><input type="checkbox" id="antiPause"> Evitar pausas forzadas</label><br>
-<label><input type="checkbox" id="antiLoop"> Romper bucles</label>
-</details>
-
-<details id="menu_imagenes" open><summary>🖼 Mostrar URL real y copiar con CTRL</summary>
-<label><input type="checkbox" id="imageTooltip"> Activar tooltip</label><br>
-<label><input type="checkbox" id="imageSaveUnlock"> Quitar protección de guardar</label><br>
-<label><input type="checkbox" id="imageForceDownload"> Forzar descarga directa</label><br>
-<label><input type="checkbox" id="imageAntiOverlay"> Bloquear overlays</label>
-</details>
-
-<details id="menu_iframe" open><summary>🧩 Iframes</summary>
-<label><input type="checkbox" id="iframeBypass"> Desbloquear iframes</label>
-</details>
-
-<details id="menu_enlaces" open><summary>🔗 Enlaces</summary>
-<label><input type="checkbox" id="linkBypass"> Quitar bloqueos de enlaces</label>
-</details>
-
-<details id="menu_teclado" open><summary>⌨ Teclado</summary>
-<label><input type="checkbox" id="unlockShortcuts"> 🔓 Desbloquear todos los atajos</label><br>
-</details>
-`;
-
-    panel.querySelectorAll("hr").forEach(hr=>{hr.style.border="1px solid #0f0";hr.style.backgroundColor="#0f0";});
-    panel.querySelectorAll("input[type='checkbox']").forEach(cb=>{cb.style.accentColor="#007BFF";});
-    document.body.appendChild(gear);document.body.appendChild(panel);
-
-    panel.querySelectorAll("input").forEach(input=>{
-      input.checked=settings[input.id];
-      input.onchange=()=>{settings[input.id]=input.checked;save();applyAll();};
-    });
-    gear.onclick=()=>{settings.panelOpen=!settings.panelOpen;panel.style.display=settings.panelOpen?"block":"none";save();};
-
-    const menus = [
-      {id:"menu_texto", menuColor:"#00FF7F", subColor:"#66FFAA"},
-      {id:"menu_anti", menuColor:"#FFD700", subColor:"#FFEA7F"},
-      {id:"menu_debugger", menuColor:"#FF8C00", subColor:"#FFB366"},
-      {id:"menu_imagenes", menuColor:"#1E90FF", subColor:"#63B8FF"},
-      {id:"menu_iframe", menuColor:"#800080", subColor:"#B266B2"},
-      {id:"menu_enlaces", menuColor:"#00CED1", subColor:"#66E0E5"},
-      {id:"menu_teclado", menuColor:"#FF69B4", subColor:"#FF9AC0"}
-    ];
-    GM_addStyle(`summary { list-style: none !important; cursor: pointer; display: block; position: relative; padding-left: 18px; } summary::marker { content: none; }`);
-    menus.forEach(menu=>{
-      const sum=document.querySelector(`#${menu.id} summary`);
-      if(sum){
-        sum.style.color = menu.menuColor;
-        GM_addStyle(`#${menu.id} summary::before { content: "▶"; position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: ${menu.menuColor}; font-size: 12px; }
-#${menu.id}[open] summary::before { content: "▼"; }`);
-        document.querySelectorAll(`#${menu.id} label,#${menu.id} b`).forEach(e=>{e.style.color=menu.subColor;});
+        return "";
       }
-    });
-  }
 
-  // ---------------- Selección enlaces estilo Opera ----------------
-  function enableLinkSelection(){
-    if(!settings.linkSelect) return;
-    GM_addStyle(`a, a * { user-select: text !important; -webkit-user-select: text !important; -moz-user-select: text !important; -ms-user-select: text !important; pointer-events: auto !important; }`);
-    let selection = window.getSelection();
-    document.addEventListener("mousedown", e=>{
-      const link = e.target.closest("a");
-      if(link && settings.linkSelect){
-        e.preventDefault();
-        const range = document.createRange();
-        range.selectNodeContents(link);
-        selection.removeAllRanges();
+      const stack = document.elementsFromPoint(e.clientX, e.clientY) || [];
+
+      for (const node of stack) {
+        const url = extract(node);
+        if (url) return url;
+      }
+
+      return extract(el);
+    }
+
+    // ---------------------------
+    // ⏱ TIMER + AUTO COPY
+    // ---------------------------
+    function startTimer(url) {
+
+      clearInterval(timer);
+      countdown = 10;
+      copied = false;
+
+      timer = setInterval(() => {
+
+        if (!url || url !== lastUrl) {
+          clearInterval(timer);
+          return;
+        }
+
+        tip.innerHTML = `⏱ ${countdown}s<br>${url}`;
+
+        countdown--;
+
+        if (countdown < 0 && !copied) {
+          copied = true;
+          clearInterval(timer);
+
+          copyToClipboard(url);
+
+          tip.innerHTML = `✅ COPIADO<br>${url}`;
+          tip.style.background = "#00ff99";
+          tip.style.color = "#000";
+
+          setTimeout(() => {
+            tip.style.background = "rgba(0,0,0,0.85)";
+            tip.style.color = "#fff";
+          }, 500);
+        }
+
+      }, 1000);
+    }
+
+    // ---------------------------
+    // 🖱 MAIN LOOP
+    // ---------------------------
+    document.addEventListener("mousemove", e => {
+
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const url = getImageUrlFrom(el, e);
+
+      if (url) {
+
+        if (url !== lastUrl) {
+          lastUrl = url;
+          startTimer(url);
+        }
+
+        tip.style.display = "block";
+        tip.style.left = (e.clientX + 12) + "px";
+        tip.style.top = (e.clientY + 12) + "px";
+
+      } else {
+
+        lastUrl = "";
+        clearInterval(timer);
+        tip.style.display = "none";
+
+      }
+
+    }, true);
+
+  }
+});
+
+  /************************************************************
+   * 🔗 LINK SELECT (RESTORED)
+   ************************************************************/
+register("linkSelect", {
+  enable() {
+
+    const selection = window.getSelection();
+
+    let state = "WAITING";
+    let linkTarget = null;
+    let initPos = [0, 0];
+    let selectType = "new";
+    let mousemoves = 0;
+
+    // 📌 tracker ligero (como el original)
+    const moves = [[0,0],[0,0],[0,0]];
+    let index = 0;
+
+    document.addEventListener("mousemove", e => {
+      moves[index][0] = e.pageX;
+      moves[index][1] = e.pageY;
+      index = (index + 1) % 3;
+    }, true);
+
+    function tracker() {
+      const out = [];
+      for (let i = 0; i < 2; i++) {
+        out.push(
+          Math.abs(moves[index][i] - moves[(index+1)%3][i]) +
+          Math.abs(moves[(index+1)%3][i] - moves[(index+2)%3][i])
+        );
+      }
+      return out;
+    }
+
+    function findLink(el) {
+      while (el && el.nodeName !== "A") el = el.parentNode;
+      return el;
+    }
+
+    function caretFromPoint(x, y) {
+      if (document.caretPositionFromPoint) {
+        return document.caretPositionFromPoint(x, y);
+      }
+      const r = document.caretRangeFromPoint(x, y);
+      return {
+        offsetNode: r.startContainer,
+        offset: r.startOffset
+      };
+    }
+
+    function getInitPos() {
+      return caretFromPoint(
+        initPos[0] - window.scrollX,
+        initPos[1] - window.scrollY
+      );
+    }
+
+    function shouldStart(e) {
+      const delta = tracker();
+      return delta[0] >= delta[1];
+    }
+
+    function startWaiting() {
+      if (linkTarget) linkTarget.classList.remove("select-text-inside-a-link");
+      state = "WAITING";
+      linkTarget = null;
+    }
+
+    function startSelecting(e) {
+      const pos = getInitPos();
+
+      if (selectType === "new") {
+        selection.collapse(pos.offsetNode, pos.offset);
+      } else if (selectType === "add") {
+        const range = new Range();
+        range.setStart(pos.offsetNode, pos.offset);
         selection.addRange(range);
       }
+
+      state = "STARTED";
+    }
+
+    document.addEventListener("mousedown", e => {
+
+      if (state !== "WAITING") return;
+      if (e.button !== 0 || e.altKey) return;
+
+      const link = findLink(e.target);
+      if (!link || !link.href) return;
+
+      selectType =
+        e.ctrlKey ? "add" :
+        e.shiftKey ? "extend" :
+        "new";
+
+      initPos = [e.pageX, e.pageY];
+      mousemoves = 0;
+
+      state = "STARTING";
+      linkTarget = link;
+
+      link.classList.add("select-text-inside-a-link");
+
     }, true);
-    document.addEventListener("dragstart", e=>{if(e.target.closest("a") && settings.linkSelect) e.preventDefault();}, true);
+
+    document.addEventListener("mousemove", e => {
+
+      if (state === "STARTING") {
+        mousemoves++;
+        if (mousemoves >= 3) startSelecting(e);
+      }
+
+      if (state === "STARTED") {
+        const caret = caretFromPoint(
+          e.pageX - window.scrollX,
+          e.pageY - window.scrollY
+        );
+
+        try {
+          selection.extend(caret.offsetNode, caret.offset);
+        } catch {}
+      }
+
+    }, true);
+
+    document.addEventListener("mouseup", () => {
+      if (state !== "WAITING") {
+        state = "ENDING";
+        setTimeout(startWaiting, 0);
+      }
+    }, true);
+
+    document.addEventListener("click", e => {
+      if (state === "ENDING" && linkTarget) {
+        const clicked = findLink(e.target);
+        if (clicked === linkTarget) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+        startWaiting();
+      }
+    }, true);
+
+    document.addEventListener("dragstart", e => {
+      if (state === "STARTED") {
+        e.preventDefault();
+      } else if (state === "STARTING") {
+        startSelecting(e);
+      }
+    }, true);
+
+    GM_addStyle(`
+      .select-text-inside-a-link {
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+      }
+    `);
+
+  }
+});
+
+  /************************************************************
+   * 🖱 CONTEXT MENU
+   ************************************************************/
+  register("contextMenu", {
+    enable() {
+      document.addEventListener("contextmenu", e => e.stopPropagation(), true);
+    }
+  });
+
+  /************************************************************
+   * 🧩 IFRAMES
+   ************************************************************/
+  register("iframeUnlock", {
+    enable() {
+      document.querySelectorAll("iframe").forEach(f => {
+        f.style.pointerEvents = "auto";
+      });
+    }
+  });
+
+  /************************************************************
+   * 🚀 INIT
+   ************************************************************/
+  function init() {
+    Object.keys(Core.modules).forEach(k => {
+      if (Core.get(k)) toggle(k, true);
+    });
+
+    createUI();
   }
 
-  // ---------------- Inicializar ----------------
-  const waitBody=setInterval(()=>{
-    if(document.body){
-      clearInterval(waitBody);
-      createPanel();
-      applyAll();
-    }
-  },50);
+  const wait = setInterval(() => {
+    if (!document.body) return;
+    clearInterval(wait);
+    init();
+  }, 50);
 
-  GM_registerMenuCommand("Abrir panel de configuración",()=>{
-      if(panel) panel.style.display="block";
-      settings.panelOpen=true;
-      save();
+  GM_registerMenuCommand("Abrir panel", () => {
+    alert("Libertador PRO v3.6 activo ⚙");
   });
 
 })();
